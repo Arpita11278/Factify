@@ -1,19 +1,26 @@
 import os
 import json
-import google.generativeai as genai
+import requests
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+# OpenRouter Default Model (Aap apne hisaab se change bhi kar sakti hain)
+DEFAULT_MODEL = "google/gemini-2.5-flash"
 
 class FactifyAnalyzer:
     def __init__(self, api_key: str = None):
-        self.api_key = api_key
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
+        # Yahan aap apni OpenRouter API key daal sakti hain ya .env se le sakte hain
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY", "your_openRouter_api_key_here")
 
     def analyze(self, text: str, model_name: str = DEFAULT_MODEL) -> dict:
-        if self.api_key and self.api_key != "your_gemini_api_key_here":
+        if self.api_key and self.api_key != "your_openRouter_api_key_here":
             try:
-                model = genai.GenerativeModel(model_name)
+                url = "https://openrouter.ai/api/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/Arpita11278/Factify", # Optional, for OpenRouter rankings
+                    "X-Title": "Factify AI" # Optional
+                }
+                
                 prompt = f"""
                 You are an expert fact-checker and misinformation analyst specializing in regional social media and WhatsApp forwards (English, Hindi, Hinglish).
                 Analyze the following text for fake news, rumors, manipulation tactics, or misinformation.
@@ -33,22 +40,24 @@ class FactifyAnalyzer:
                 - "key_findings": List of 2 to 3 bullet points detailing specific observations
                 - "recommended_action": Actionable advice for the user before they share
                 """
-                
-                response = model.generate_content(prompt)
-                clean_text = response.text.strip()
-                if clean_text.startswith("```json"):
-                    clean_text = clean_text[7:]
-                if clean_text.endswith("```"):
-                    clean_text = clean_text[:-3]
-                
-                data = json.loads(clean_text.strip())
-                data["engine"] = f"Google Gemini ({model_name})"
-                return data
 
+                payload = {
+                    "model": model_name,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "response_format": {"type": "json_object"}
+                }
+
+                response = requests.post(url, headers=headers, json=payload)
+                if response.status_code == 200:
+                    res_data = response.json()
+                    content = res_data["choices"][0]["message"]["content"]
+                    data = json.loads(content.strip())
+                    data["engine"] = f"OpenRouter ({model_name})"
+                    return data
             except Exception as e:
                 pass
 
-        # Fallback Heuristic Engine
+        # Fallback Heuristic Engine (Agar API key na ho ya error aaye)
         return self._heuristic_analysis(text)
 
     def _heuristic_analysis(self, text: str) -> dict:
