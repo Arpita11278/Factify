@@ -1,6 +1,10 @@
 import os
 import json
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # OpenRouter Default Model (Aap apne hisaab se change bhi kar sakti hain)
 DEFAULT_MODEL = "google/gemini-2.5-flash"
@@ -28,16 +32,18 @@ class FactifyAnalyzer:
                 Text to analyze:
                 \"\"\"{text}\"\"\"
 
-                Return a valid JSON object ONLY, with the following exact keys:
+                CRITICAL: You must return a valid JSON object ONLY. Do not include any markdown code blocks (like ```json ... ```), just raw JSON.
+                Ensure all string lists (warning_signs, key_findings) are valid JSON arrays of strings.
+                
+                With the following exact keys:
                 - "verdict": Must be one of ["Likely True", "Needs Verification", "Likely Misleading"]
                 - "risk_level": Must be one of ["Low", "Medium", "High"]
                 - "confidence": Integer percentage between 0 and 100
-                - "credibility_score": Integer score between 0 and 100 (100 being completely credible)
-                - "detected_language": Language of the text (e.g. "English", "Hindi", "Hinglish")
+                - "detected_language": Main language of the text (e.g. "English", "Hindi", "Hinglish")
                 - "claim_summary": A concise one-sentence summary of the core claim
-                - "warning_signs": List of strings describing warning signs found (e.g., ["Artificial Urgency", "Forward-Baiting"]) or ["None explicitly detected"]
+                - "warning_signs": JSON Array of strings describing warning signs found (e.g., ["Artificial Urgency", "Forward-Baiting"]) or ["None explicitly detected"]
                 - "explanation": Detailed reasoning behind the assessment (2-3 sentences)
-                - "key_findings": List of 2 to 3 bullet points detailing specific observations
+                - "key_findings": JSON Array of 2 to 3 strings detailing specific observations
                 - "recommended_action": Actionable advice for the user before they share
                 """
 
